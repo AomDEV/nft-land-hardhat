@@ -43,7 +43,7 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
     }
 
     mapping(uint256 => LandMetadata[]) public _lands;
-    mapping(uint256 => string) private _tokenURI;
+    mapping(uint256 => string) public _tokenURI;
     uint256[] public _zones;
 
     address public _landStorage;
