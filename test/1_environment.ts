@@ -75,11 +75,11 @@ describe("Environment", function () {
     it("Set Global Wallet", async function () {
         const deployer = Signer.getDeployer();
         const globalWallet = Signer.getGlobal();
-        const setGlobalWallet = await Contract.getStorage().connect(deployer).setWallet(globalWallet.address);
+        const setGlobalWallet = await Contract.getStorage().connect(deployer).setWallet([globalWallet.address]);
 
         expect(setGlobalWallet.hash.length).to.equal(66);
 
-        const getWallet = await Contract.getStorage().connect(deployer)._WALLET();
+        const getWallet = await Contract.getStorage().connect(deployer)._WALLET(0);
         expect(getWallet).to.equal(globalWallet.address);
     });
 

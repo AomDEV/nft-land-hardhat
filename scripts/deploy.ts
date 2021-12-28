@@ -105,7 +105,7 @@ async function main() {
   console.log(`[Token][approve] Transaction Hash :`, tokenApprove.hash);
   const landApprove = await land?.setApprovalForAll(storage?.address, true);
   console.log(`[Land][setApprovalForAll] Transaction Hash :`, landApprove.hash);
-  const setWallet = await storage?.setWallet(deployer.address);
+  const setWallet = await storage?.setWallet([deployer.address]);
   console.log(`[Storage][setWallet] Transaction Hash :`, setWallet.hash);
 
   console.log(SEPARATOR);
