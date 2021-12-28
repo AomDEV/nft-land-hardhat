@@ -3,6 +3,7 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 interface IERC20 {
     function allowance(address owner, address spender) external returns(uint256);
@@ -21,7 +22,11 @@ interface IERC721 {
 
 /// @custom:security-contact siriwat576@gmail.com
 contract Storage is IERC721Receiver, AccessControl {
+    using SafeMath for uint256;
+
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 public constant DEV_ROLE = keccak256("DEV_ROLE");
+
     bytes4 public constant ERC721_INTERFACEID = 0x80ac58cd;
 
     event OnLandPurchased(uint256[] tokenIds, address newOwner);
@@ -29,7 +34,7 @@ contract Storage is IERC721Receiver, AccessControl {
 
     address public _ERC20;
     address public _ERC721;
-    address public _WALLET;
+    address[] public _WALLET;
     uint256 public _pricePerBlock = 1 ether;
 
     constructor(
@@ -42,6 +47,7 @@ contract Storage is IERC721Receiver, AccessControl {
         // Grant role to deployer
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MANAGER_ROLE, msg.sender);
+        _grantRole(DEV_ROLE, msg.sender);
     }
 
     function batchPurchase(uint256[] memory tokenIds) public {
@@ -56,27 +62,25 @@ contract Storage is IERC721Receiver, AccessControl {
         }
 
         uint256 totalPrice = _pricePerBlock * tokenIds.length;
-        IERC20(_ERC20).transferFrom(msg.sender, _WALLET, totalPrice);
+        IERC20(_ERC20).transferFrom(msg.sender, address(this), totalPrice);
 
         emit OnLandPurchased(tokenIds, msg.sender);
     }
 
-    // === Role ===
-    function grantManagerRole(address user) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(MANAGER_ROLE, user);
-    }
-    // ============
-
     // === Setting ===
-    function setERC20(address erc20) public onlyRole(MANAGER_ROLE) {
+    function setERC20(address erc20) public onlyRole(DEV_ROLE) {
         _ERC20 = erc20;
     }
-    function setERC721(address erc721) public onlyRole(MANAGER_ROLE) {
+    function setERC721(address erc721) public onlyRole(DEV_ROLE) {
         require(IERC721(erc721).supportsInterface(ERC721_INTERFACEID), "Address is not support ERC721");
 
         _ERC721 = erc721;
     }
-    function setWallet(address erc20) public onlyRole(MANAGER_ROLE){
+    function setWallet(address[] memory erc20) public onlyRole(DEV_ROLE){
+        require(erc20.length > 0, "No wallet accounts found");
+        for(uint256 i = 0; i < erc20.length; i++)
+            if(erc20[i] == address(0) || erc20[i] == address(this)) 
+                revert("Invalid wallet account");
         _WALLET = erc20;
     }
     function setPricePerBlock(uint256 price) public onlyRole(MANAGER_ROLE) {
@@ -85,6 +89,16 @@ contract Storage is IERC721Receiver, AccessControl {
         emit OnLandPriceChanged(_pricePerBlock);
     }
     // ============
+
+    function withdrawToken() public onlyRole(MANAGER_ROLE){
+        require(_WALLET.length > 0, "Not found wallet accounts");
+
+        uint256 amount = IERC20(_ERC20).balanceOf(address(this));
+        uint256 total = amount.div(_WALLET.length);
+        for(uint256 i = 0; i < _WALLET.length; i++){
+            IERC20(_ERC20).transferFrom(address(this), _WALLET[i], total);   
+        }
+    }
 
     function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
         return this.onERC721Received.selector;
