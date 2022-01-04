@@ -34,7 +34,7 @@ contract Storage is IERC721Receiver, AccessControl {
 
     address public _ERC20;
     address public _ERC721;
-    address[] public _WALLET;
+    address[] public _wallets;
     uint256 public _pricePerBlock = 1 ether;
 
     constructor(
@@ -68,20 +68,26 @@ contract Storage is IERC721Receiver, AccessControl {
     }
 
     // === Setting ===
-    function setERC20(address erc20) public onlyRole(DEV_ROLE) {
-        _ERC20 = erc20;
-    }
-    function setERC721(address erc721) public onlyRole(DEV_ROLE) {
-        require(IERC721(erc721).supportsInterface(ERC721_INTERFACEID), "Address is not support ERC721");
+    function setERC20(address _address) public onlyRole(DEV_ROLE) {
+        require(IERC20(_address).allowance(msg.sender, address(this)) >= 0, "Invalid ERC20");
 
-        _ERC721 = erc721;
+        _ERC20 = _address;
     }
-    function setWallet(address[] memory erc20) public onlyRole(DEV_ROLE){
-        require(erc20.length > 0, "No wallet accounts found");
-        for(uint256 i = 0; i < erc20.length; i++)
-            if(erc20[i] == address(0) || erc20[i] == address(this)) 
+    function setERC721(address _address) public onlyRole(DEV_ROLE) {
+        require(
+            IERC721(_address).supportsInterface(ERC721_INTERFACEID), 
+            "Address is not support ERC721"
+        );
+
+        _ERC721 = _address;
+    }
+    function setWallet(address[] memory _addresses) public onlyRole(DEV_ROLE){
+        require(_addresses.length > 0, "No wallet accounts found");
+        
+        for(uint256 i = 0; i < _addresses.length; i++)
+            if(_addresses[i] == address(0) || _addresses[i] == address(this)) 
                 revert("Invalid wallet account");
-        _WALLET = erc20;
+        _wallets = _addresses;
     }
     function setPricePerBlock(uint256 price) public onlyRole(MANAGER_ROLE) {
         _pricePerBlock = 1 ether * price;
@@ -91,13 +97,16 @@ contract Storage is IERC721Receiver, AccessControl {
     // ============
 
     function withdrawToken() public onlyRole(MANAGER_ROLE){
-        require(_WALLET.length > 0, "Not found wallet accounts");
+        require(_wallets.length > 0, "Not found wallet accounts");
 
         uint256 amount = IERC20(_ERC20).balanceOf(address(this));
-        uint256 total = amount.div(_WALLET.length);
-        for(uint256 i = 0; i < _WALLET.length; i++){
-            IERC20(_ERC20).transferFrom(address(this), _WALLET[i], total);   
-        }
+        require(amount > 0, "Balance is not enough");
+
+        IERC20(_ERC20).approve(address(this), amount);
+
+        uint256 total = SafeMath.div(amount, _wallets.length);
+        for(uint256 i = 0; i < _wallets.length; i++)
+            IERC20(_ERC20).transferFrom(address(this), _wallets[i], total);   
     }
 
     function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
