@@ -79,7 +79,7 @@ describe("Environment", function () {
 
         expect(setGlobalWallet.hash.length).to.equal(66);
 
-        const getWallet = await Contract.getStorage().connect(deployer)._WALLET(0);
+        const getWallet = await Contract.getStorage().connect(deployer)._wallets(0);
         expect(getWallet).to.equal(globalWallet.address);
     });
 
