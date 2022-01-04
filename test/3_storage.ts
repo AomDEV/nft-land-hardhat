@@ -59,4 +59,33 @@ describe("Storage", function () {
             contractBalance.add(beforeGlobal)
         );
     });
+
+    /*
+    it(`Details`, async function () {
+        const buyer = Signer.getBuyer();
+        const landByOwner = await Contract.getLand().getLandByOwner(buyer.address);
+        const landByToken = await Contract.getLand().getLandByTokenId(TOKEN_IDS);
+
+        const mapOwner = [];
+        for(let i = 0; i < landByOwner[0].length; i++) mapOwner.push({
+            found: landByOwner[0][i],
+            data: {
+                x: landByOwner[1][i].x,
+                y: landByOwner[1][i].y,
+                tokenId: landByOwner[1][i].tokenId
+            }
+        });
+        const mapToken = [];
+        for(let i = 0; i < landByToken[0].length; i++) mapToken.push({
+            found: landByToken[0][i],
+            zoneId: landByToken[1][i],
+            data: {
+                x: landByToken[2][i].x,
+                y: landByToken[2][i].y,
+                tokenId: landByToken[2][i].tokenId
+            }
+        });
+        console.log(mapOwner, mapToken);
+    });
+    */
 });
