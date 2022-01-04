@@ -108,22 +108,29 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
     // ============
 
     // === Base ===
-    function batchPremint(uint256 zoneId, uint256[] memory x, uint256[] memory y, LandType landType) public onlyRole(MINTER_ROLE) {
+    function batchPremint(uint256 zoneId, uint256[] memory x, uint256[] memory y, LandType landType, string[] memory tokenURIs) public onlyRole(MINTER_ROLE) {
         require(
             x.length == y.length, 
             "Invalid parameter"
         );
+        require(
+            (tokenURIs.length > 0 && tokenURIs.length == x.length) || tokenURIs.length == 0,
+            "Invalid Token URI"
+        );
 
         for(uint256 i = 0; i < x.length; i++){
-            premint(zoneId, x[i], y[i], landType);
+            string memory customTokenURI = "";
+            if(tokenURIs.length > 0) customTokenURI = tokenURIs[i];
+
+            premint(zoneId, x[i], y[i], landType, customTokenURI);
         }
     }
 
-    function premint(uint256 zoneId, uint256 x, uint256 y, LandType landType) public onlyRole(MINTER_ROLE) uniqueLand(zoneId, x, y) {
+    function premint(uint256 zoneId, uint256 x, uint256 y, LandType landType, string memory customTokenURI) public onlyRole(MINTER_ROLE) uniqueLand(zoneId, x, y) {
         string memory tokenUri = _getTokenURI(zoneId);
         require(bytes(tokenUri).length > 0, "Not found metadata URI");
         require(_landStorage != address(0) && _landStorage != address(this), "Land Storage is not found");
-        require(_isZoneExists(zoneId), "tThis zone is not exists");
+        require(_isZoneExists(zoneId), "This zone is not exists");
 
         // Generate Token ID
         uint256 tokenId = _tokenIdCounter.current();
@@ -131,7 +138,11 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
 
         // Mint NFT & Set NFT Token URI
         _safeMint(_landStorage, tokenId);
-        _setTokenURI(tokenId, tokenUri);
+        if(bytes(customTokenURI).length <= 0) {
+            _setTokenURI(tokenId, tokenUri);
+        } else{
+            _setTokenURI(tokenId, customTokenURI);
+        }
 
         _lands[zoneId].push(
             LandMetadata({
@@ -169,15 +180,16 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
         }
     }
 
-    function _getLandByTokenId(uint256 tokenId) internal view returns(uint256,LandMetadata memory) {
+    function _getLandByTokenId(uint256 tokenId) internal view returns(bool,uint256,LandMetadata memory) {
         for(uint256 zoneId = 0; zoneId < _zones.length; zoneId++){
             for(uint256 i = 0; i < _lands[zoneId].length; i++){
                 if(_lands[zoneId][i].tokenId == tokenId) {
-                    return (zoneId, _lands[zoneId][i]);
+                    return (true, zoneId, _lands[zoneId][i]);
                 }
             }
         }
         return (
+            false,
             0,
             LandMetadata({
                 x: 0,
@@ -218,6 +230,41 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
             });
         }
         return details;
+    }
+    function getLandByOwner(address owner) public view returns(bool[] memory, LandMetadata[] memory){
+        require(owner != address(this), "Invalid owner");
+
+        uint256 ownedCount = 0;
+        for(uint256 i = 0; i <= _tokenIdCounter.current(); i++) 
+            if(ownerOf(i) == owner) ownedCount++;
+
+        LandMetadata[] memory details = new LandMetadata[](ownedCount);
+        bool[] memory founds = new bool[](ownedCount);
+        uint256 index = 0;
+        for(uint256 i = 0; i <= _tokenIdCounter.current(); i++) {
+            if(ownerOf(i) == owner) {
+                (bool found,, LandMetadata memory data) = _getLandByTokenId(i);
+                founds[index] = found;
+                details[index] = data;
+                index++;
+            }
+        }
+        return (founds, details);
+    }
+    function getLandByTokenId(uint256[] memory tokenIDs) public view returns(bool[] memory, uint256[] memory, LandMetadata[] memory){
+        require(tokenIDs.length > 0, "Invalid Token IDs");
+
+        LandMetadata[] memory details = new LandMetadata[](tokenIDs.length);
+        bool[] memory founds = new bool[](tokenIDs.length);
+        uint256[] memory zones = new uint256[](tokenIDs.length);
+
+        for(uint256 i = 0; i < tokenIDs.length; i++){
+            (bool found, uint256 zoneId, LandMetadata memory data) = _getLandByTokenId(tokenIDs[i]);
+            founds[i] = found;
+            details[i] = data;
+            zones[i] = zoneId;
+        }
+        return (founds, zones, details);
     }
     // ============
 
