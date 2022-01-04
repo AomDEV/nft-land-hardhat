@@ -5,15 +5,15 @@ import {Contract, Signer} from "./TestManager"
 
 describe("Land", function () {
     const ZONE_ID = 0;
-    const WIDTH = 25;
-    const HEIGHT = 25;
+    const WIDTH = 10;
+    const HEIGHT = 10;
     it("Configuration", async function () {
         const ipfs = "ipfs://bafybeibnsoufr2renqzsh347nrx54wcubt5lgkeivez63xvivplfwhtpym/metadata.json";
-        const zoneMetadata = await Contract.getLand().setZoneTokenURI(ZONE_ID, ipfs);
+        const zoneMetadata = await Contract.getLand().createZone(ZONE_ID, ipfs);
         expect(zoneMetadata.hash.length).to.equal(66);
     });
     it(`Premint Land NFT (${WIDTH}x${HEIGHT})`, async function () {
-        // Tile: 100x100
+        // Tile: 10x10
         const premints: Promise<ContractTransaction>[] = [];
         for(let x = 0; x <= WIDTH; x++){
             for(let y = 0; y <= HEIGHT; y++){

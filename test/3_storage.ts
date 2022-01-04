@@ -10,7 +10,7 @@ describe("Storage", function () {
     const TOKEN_IDS: BigNumber[] = [];
     it(`Randomly buy land`, async function () {
         const buyer = Signer.getBuyer();
-        const global = Signer.getGlobal();
+        const global = Contract.getStorage()
         const getLandDetail = await Contract.getLand().getLands(ZONE_ID);
         const randomIndex = Math.floor( Math.random() * (getLandDetail.length - 1) ) - MAX_BUY;
         for(let i = 0; i < MAX_BUY; i++) {
@@ -41,5 +41,22 @@ describe("Storage", function () {
             const owner = await Contract.getLand().connect(buyer.address).ownerOf(tokenId);
             expect(owner).to.equal(buyer.address, "ความเป็นเจ้าของไม่ถูกต้อง");
         }
+    });
+
+    it(`Withdraw Token from Contract`, async function () {
+        const deployer = Signer.getDeployer();
+        const global = Signer.getGlobal();
+
+        const beforeGlobal = await Contract.getToken().balanceOf(global.address);
+
+        const contractBalance = await Contract.getToken().balanceOf(Contract.getStorage().address);
+        const result = await Contract.getStorage().connect(deployer).withdrawToken();
+        expect(result.hash.length).to.equal(66);
+
+        const afterGlobal = await Contract.getToken().balanceOf(global.address);
+
+        expect(afterGlobal).to.equal(
+            contractBalance.add(beforeGlobal)
+        );
     });
 });
