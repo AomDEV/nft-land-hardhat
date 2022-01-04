@@ -96,6 +96,12 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
     function setZoneTokenURI(uint256 zoneId, string memory uri) public onlyRole(DEV_ROLE) {
         _tokenURI[zoneId] = uri;
     }
+
+    function setTokenURI(uint256 tokenId, string memory customTokenURI) public onlyRole(DEV_ROLE){
+        require(_exists(tokenId), "Token ID is not exists");
+
+        _setTokenURI(tokenId, customTokenURI);
+    }
     // ============
 
     // === Modifier ===
@@ -181,9 +187,11 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
     }
 
     function _getLandByTokenId(uint256 tokenId) internal view returns(bool,uint256,LandMetadata memory) {
+        require(_exists(tokenId), "Token ID is not exists");
+
         for(uint256 zoneId = 0; zoneId < _zones.length; zoneId++){
             for(uint256 i = 0; i < _lands[zoneId].length; i++){
-                if(_lands[zoneId][i].tokenId == tokenId) {
+                if(_lands[zoneId][i].tokenId == tokenId && _exists(_lands[zoneId][i].tokenId)) {
                     return (true, zoneId, _lands[zoneId][i]);
                 }
             }
@@ -242,7 +250,7 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
         bool[] memory founds = new bool[](ownedCount);
         uint256 index = 0;
         for(uint256 i = 0; i <= _tokenIdCounter.current(); i++) {
-            if(ownerOf(i) == owner) {
+            if(ownerOf(i) == owner && _exists(i)) {
                 (bool found,, LandMetadata memory data) = _getLandByTokenId(i);
                 founds[index] = found;
                 details[index] = data;
