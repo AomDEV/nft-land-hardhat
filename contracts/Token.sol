@@ -17,8 +17,4 @@ contract Multiverse is ERC20, ERC20Burnable, AccessControl {
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
-
-    function grantMinterRole(address user) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(MINTER_ROLE, user);
-    }
 }
