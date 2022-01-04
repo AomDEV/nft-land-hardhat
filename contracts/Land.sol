@@ -114,25 +114,16 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
     // ============
 
     // === Base ===
-    function batchPremint(uint256 zoneId, uint256[] memory x, uint256[] memory y, LandType landType, string[] memory tokenURIs) public onlyRole(MINTER_ROLE) {
+    function batchPremint(uint256 zoneId, uint256[] memory x, uint256[] memory y, LandType landType) public onlyRole(MINTER_ROLE) {
         require(
             x.length == y.length, 
             "Invalid parameter"
         );
-        require(
-            (tokenURIs.length > 0 && tokenURIs.length == x.length) || tokenURIs.length == 0,
-            "Invalid Token URI"
-        );
 
-        for(uint256 i = 0; i < x.length; i++){
-            string memory customTokenURI = "";
-            if(tokenURIs.length > 0) customTokenURI = tokenURIs[i];
-
-            premint(zoneId, x[i], y[i], landType, customTokenURI);
-        }
+        for(uint256 i = 0; i < x.length; i++) premint(zoneId, x[i], y[i], landType);
     }
 
-    function premint(uint256 zoneId, uint256 x, uint256 y, LandType landType, string memory customTokenURI) public onlyRole(MINTER_ROLE) uniqueLand(zoneId, x, y) {
+    function premint(uint256 zoneId, uint256 x, uint256 y, LandType landType) public onlyRole(MINTER_ROLE) uniqueLand(zoneId, x, y) {
         string memory tokenUri = _getTokenURI(zoneId);
         require(bytes(tokenUri).length > 0, "Not found metadata URI");
         require(_landStorage != address(0) && _landStorage != address(this), "Land Storage is not found");
@@ -144,11 +135,7 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
 
         // Mint NFT & Set NFT Token URI
         _safeMint(_landStorage, tokenId);
-        if(bytes(customTokenURI).length <= 0) {
-            _setTokenURI(tokenId, tokenUri);
-        } else{
-            _setTokenURI(tokenId, customTokenURI);
-        }
+        _setTokenURI(tokenId, tokenUri);
 
         _lands[zoneId].push(
             LandMetadata({
