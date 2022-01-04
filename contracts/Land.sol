@@ -231,13 +231,13 @@ contract Land is ERC721, ERC721URIStorage, AccessControl {
 
         uint256 ownedCount = 0;
         for(uint256 i = 0; i <= _tokenIdCounter.current(); i++) 
-            if(ownerOf(i) == owner) ownedCount++;
+            if(_exists(i) && ownerOf(i) == owner) ownedCount++;
 
         LandMetadata[] memory details = new LandMetadata[](ownedCount);
         bool[] memory founds = new bool[](ownedCount);
         uint256 index = 0;
         for(uint256 i = 0; i <= _tokenIdCounter.current(); i++) {
-            if(ownerOf(i) == owner && _exists(i)) {
+            if(_exists(i) && ownerOf(i) == owner) {
                 (bool found,, LandMetadata memory data) = _getLandByTokenId(i);
                 founds[index] = found;
                 details[index] = data;
