@@ -36,14 +36,21 @@ async function main() {
   // manually to make sure everything is compiled
 
   const verifyTasks: VerifyArgs[] = [];
-  const autoDeploys: AutoDeploy[] = [
+  /*const autoDeploys: AutoDeploy[] = [
     {title: "Token", contract: "Multiverse", constructor: []},
     {title: "Land", contract: "Land", constructor: []},
     {title: "Storage", contract: "Storage", constructor: [
       "%Land%",
       "%Multiverse%"
     ]}
-  ];
+  ];*/
+  const autoDeploys: AutoDeploy[] = [
+    {title: "Land", contract: "Land", constructor: []},
+    {title: "Storage", contract: "Storage", constructor: [
+      "%Land%",
+      "0x0B52539f093a0f5564F889A45d17b1ab576D15DC"
+    ]}
+  ]
 
   let startTime = Date.now();
 
@@ -97,16 +104,57 @@ async function main() {
   const storage = getContract("Storage") as Storage;
   const token = getContract("Multiverse") as Multiverse;
   const contractRole = await land?.CONTRACT_ROLE();
-  const grantRole = await land?.grantRole(contractRole, storage?.address);
-  console.log(`[Land][grantRole] Transaction Hash :`, grantRole.hash);
-  const setLandStorage = await land?.setLandStorage(storage?.address);
-  console.log(`[Land][setLandStorage] Transaction Hash :`, setLandStorage.hash);
-  const tokenApprove = await token?.approve(storage?.address, MAX_SPENDER);
-  console.log(`[Token][approve] Transaction Hash :`, tokenApprove.hash);
-  const landApprove = await land?.setApprovalForAll(storage?.address, true);
-  console.log(`[Land][setApprovalForAll] Transaction Hash :`, landApprove.hash);
-  const setWallet = await storage?.setWallet([deployer.address]);
-  console.log(`[Storage][setWallet] Transaction Hash :`, setWallet.hash);
+
+  if(land && storage){
+    const grantRole = await land?.grantRole(contractRole, storage?.address);
+    console.log(`[Land][grantRole] Transaction Hash :`, grantRole.hash);
+
+    const setLandStorage = await land?.setLandStorage(storage?.address);
+    console.log(`[Land][setLandStorage] Transaction Hash :`, setLandStorage.hash);
+
+    const landApprove = await land?.setApprovalForAll(storage?.address, true);
+    console.log(`[Land][setApprovalForAll] Transaction Hash :`, landApprove.hash);
+  }
+  if(token && storage){
+    const tokenApprove = await token?.approve(storage?.address, MAX_SPENDER);
+    console.log(`[Token][approve] Transaction Hash :`, tokenApprove.hash);
+  }
+  if(storage){
+    const setWallet = await storage?.setWallet([deployer.address]);
+    console.log(`[Storage][setWallet] Transaction Hash :`, setWallet.hash);
+  }
+
+  // Batch grant role
+  const addresses = ["0x782beb424B3B39a73f48738c19CAE82Ff9F17549","0x7E1494B8EcF5d853829aD0e0D710340aFd217C98"];
+  const role = [
+    {
+      function: land?.grantRole, 
+      roles: [
+        await land?.DEFAULT_ADMIN_ROLE(), 
+        await land?.DEV_ROLE(),
+        await land?.MINTER_ROLE(),
+        await land?.MANAGER_ROLE()
+      ]
+    },
+    {
+      function: storage?.grantRole,
+      roles: [
+        await storage?.DEFAULT_ADMIN_ROLE(),
+        await storage?.DEV_ROLE(),
+        await storage?.MANAGER_ROLE()
+      ]
+    }
+  ];
+  for(let a = 0; a < addresses.length; a++){
+    let rolesCount = 0;
+    for(let f = 0; f < role.length; f++){
+      for(let r = 0; r < role[f].roles.length; r++){
+        await role[f].function(role[f].roles[r], addresses[a]);
+        rolesCount++;
+      }
+    }
+    console.log(`Granted ${rolesCount} roles to : ${addresses[a]}`);
+  }
 
   console.log(SEPARATOR);
 
